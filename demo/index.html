@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>drwr</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f5f5f7;
+      color: #1d1d1f;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 48px 20px;
+      gap: 24px;
+      transform-origin: top center;
+    }
+
+    h1 { font-size: 2rem; font-weight: 700; letter-spacing: -0.02em; }
+
+    .subtitle {
+      color: #86868b;
+      max-width: 320px;
+      text-align: center;
+      line-height: 1.5;
+      font-size: 0.95rem;
+    }
+
+    .panel {
+      background: #fff;
+      border-radius: 16px;
+      padding: 20px;
+      width: 100%;
+      max-width: 400px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+
+    .panel-label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #86868b;
+      margin-bottom: 14px;
+    }
+
+    /* Slider track with snap point markers */
+    .snap-track {
+      position: relative;
+      height: 48px;
+      margin: 8px 0 4px;
+      touch-action: none;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    .snap-track-bar {
+      position: absolute;
+      top: 50%;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: #e5e5e5;
+      border-radius: 2px;
+      transform: translateY(-50%);
+    }
+
+    .snap-marker {
+      position: absolute;
+      top: 50%;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #1d1d1f;
+      border: 3px solid #fff;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+      transform: translate(-50%, -50%);
+      cursor: grab;
+      transition: transform 0.1s ease;
+      z-index: 2;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .snap-marker:active { transform: translate(-50%, -50%) scale(1.2); cursor: grabbing; }
+
+    .snap-marker-label {
+      position: absolute;
+      top: -22px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.75rem;
+      user-select: none;
+      -webkit-user-select: none;
+      font-weight: 600;
+      color: #1d1d1f;
+      white-space: nowrap;
+      pointer-events: none;
+    }
+
+    .snap-track-tick {
+      position: absolute;
+      top: 50%;
+      width: 1px;
+      height: 14px;
+      background: #ccc;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+    }
+
+    .snap-track-tick span {
+      position: absolute;
+      bottom: -18px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.65rem;
+      color: #bbb;
+      white-space: nowrap;
+    }
+
+    .snap-track-hint {
+      font-size: 0.75rem;
+      color: #aaa;
+      text-align: center;
+      margin-top: 4px;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .btn {
+      flex: 1;
+      min-width: 0;
+      text-align: center;
+      padding: 10px 16px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: transform 0.1s ease, opacity 0.1s ease;
+    }
+
+    .btn:active { transform: scale(0.96); opacity: 0.8; }
+    .btn-outline { background: #fff; color: #1d1d1f; border: 1px solid #e5e5e5; }
+    .btn-outline:hover { background: #f5f5f7; }
+
+    .layout-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .layout-row:last-child { margin-bottom: 0; }
+
+    .layout-row label {
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: #555;
+      white-space: nowrap;
+    }
+
+    .layout-row label span {
+      font-weight: 600;
+      color: #1d1d1f;
+    }
+
+    .layout-row input[type="range"] {
+      flex: 1;
+      max-width: 180px;
+      accent-color: #1d1d1f;
+    }
+
+    .align-btns { display: flex; gap: 6px; }
+
+    .align-btn {
+      padding: 6px 12px !important;
+      font-size: 0.8rem !important;
+      flex: none !important;
+      min-width: auto !important;
+    }
+
+    .align-btn.active {
+      background: #1d1d1f !important;
+      color: #fff !important;
+      border-color: #1d1d1f !important;
+    }
+
+    .sheet-content h2 { font-size: 1.25rem; font-weight: 600; margin-bottom: 12px; }
+    .sheet-content p { color: #555; text-align: left; margin-bottom: 16px; line-height: 1.5; }
+    .sheet-content ul { list-style: none; padding: 0; }
+    .sheet-content li { padding: 14px 0; border-bottom: 1px solid #e5e5e5; font-size: 0.95rem; }
+    .sheet-content li:last-child { border-bottom: none; }
+  </style>
+</head>
+<body>
+  <h1>drwr</h1>
+  <p class="subtitle">A zero-dependency bottom sheet. Drag the markers to set snap points, then open the sheet.</p>
+
+  <div class="panel">
+    <div class="panel-label">Snap points</div>
+    <div class="snap-track" id="snap-track">
+      <div class="snap-track-bar"></div>
+      <div class="snap-track-tick" style="left:100%"><span>1.0</span></div>
+    </div>
+    <div class="snap-track-hint">Drag to move · Double-tap track to add · Double-tap marker to remove</div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-label">Layout</div>
+    <div class="layout-row">
+      <label>Width <span id="width-val">60%</span></label>
+      <input type="range" id="width-slider" min="30" max="100" value="60" step="5" />
+    </div>
+    <div class="layout-row">
+      <label>Align</label>
+      <div class="align-btns">
+        <button class="btn btn-outline align-btn active" data-align="center">Center</button>
+        <button class="btn btn-outline align-btn" data-align="left">Left</button>
+        <button class="btn btn-outline align-btn" data-align="right">Right</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-label">Open to</div>
+    <div class="controls" id="snap-buttons"></div>
+  </div>
+
+  <div id="my-sheet" hidden>
+    <div class="sheet-content">
+      <h2>Hello from drwr</h2>
+      <p>Drag the handle to move this sheet. Flick down to close. Try the snap points.</p>
+      <ul>
+        <li>Spring physics animation</li>
+        <li>Velocity-aware snapping</li>
+        <li>Touch &amp; mouse gestures</li>
+        <li>Focus trap &amp; ARIA</li>
+        <li>CSS custom property theming</li>
+        <li>Zero dependencies</li>
+        <li>Scrollable content area</li>
+        <li>Configurable snap points</li>
+      </ul>
+    </div>
+  </div>
+
+  <script type="module" src="./demo.ts"></script>
+</body>
+</html>

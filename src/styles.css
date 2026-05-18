@@ -1,0 +1,89 @@
+:root {
+  --drwr-bg: #fff;
+  --drwr-radius: 16px;
+  --drwr-handle-width: 32px;
+  --drwr-handle-height: 4px;
+  --drwr-handle-color: rgba(0, 0, 0, 0.25);
+  --drwr-overlay-color: rgba(0, 0, 0, 0.4);
+  --drwr-shadow:
+    0 -1px 0 rgba(0, 0, 0, 0.04),
+    0 -8px 32px rgba(0, 0, 0, 0.12),
+    0 -24px 60px rgba(0, 0, 0, 0.06);
+  --drwr-z-index: 9999;
+  --drwr-border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.drwr-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--drwr-z-index);
+  background: var(--drwr-overlay-color);
+  opacity: 0;
+  pointer-events: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.drwr-overlay[data-visible="true"] {
+  pointer-events: auto;
+}
+
+.drwr-sheet {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: calc(var(--drwr-z-index) + 1);
+  display: flex;
+  flex-direction: column;
+  background: var(--drwr-bg);
+  border-radius: var(--drwr-radius) var(--drwr-radius) 0 0;
+  border-top: var(--drwr-border);
+  border-left: var(--drwr-border);
+  border-right: var(--drwr-border);
+  box-shadow: var(--drwr-shadow);
+  transform: translate3d(0, 100vh, 0);
+  touch-action: none;
+  will-change: transform;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: contain;
+  visibility: hidden;
+}
+
+
+.drwr-sheet[data-dragging="true"] {
+  user-select: none;
+  cursor: grabbing;
+}
+
+.drwr-handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 14px 0 10px;
+  cursor: grab;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.drwr-handle::before {
+  content: "";
+  display: block;
+  width: var(--drwr-handle-width);
+  height: var(--drwr-handle-height);
+  border-radius: 99px;
+  background: var(--drwr-handle-color);
+}
+
+.drwr-handle:active {
+  cursor: grabbing;
+}
+
+.drwr-content {
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  padding: 0 16px 16px;
+}
