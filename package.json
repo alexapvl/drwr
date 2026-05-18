@@ -27,6 +27,7 @@
   ],
   "scripts": {
     "build": "tsup",
+    "build:demo": "vite build demo --outDir dist",
     "dev": "vite demo",
     "typecheck": "tsc --noEmit"
   },
@@ -43,6 +44,7 @@
   ],
   "author": "",
   "license": "MIT",
+  "packageManager": "pnpm@10.25.0",
   "devDependencies": {
     "tsup": "^8.0.0",
     "typescript": "^5.4.0",
