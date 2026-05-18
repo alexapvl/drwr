@@ -5,14 +5,17 @@ A zero-dependency, framework-agnostic bottom sheet / drawer component. Vanilla J
 ## Install
 
 ```bash
-npm install drwr
+pnpm add @alexapvl/drwr
+npm install @alexapvl/drwr
+yarn add @alexapvl/drwr
+bun add @alexapvl/drwr
 ```
 
 ## Usage
 
 ```js
-import { Sheet } from "drwr";
-import "drwr/style.css";
+import { Sheet } from "@alexapvl/drwr";
+import "@alexapvl/drwr/style.css";
 
 const sheet = new Sheet(document.getElementById("my-sheet"), {
   snapPoints: [0, 0.5, 1],
