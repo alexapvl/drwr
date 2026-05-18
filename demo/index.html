@@ -31,13 +31,147 @@
       font-size: 0.95rem;
     }
 
+    .subtitle-line { display: block; }
+
     .panel {
       background: #fff;
-      border-radius: 16px;
+      border-radius: 8px;
       padding: 20px;
       width: 100%;
       max-width: 400px;
       box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+
+    .install-panel {
+      overflow: hidden;
+      border: 1px solid rgba(29, 29, 31, 0.08);
+      box-shadow: 0 16px 40px rgba(29, 29, 31, 0.08);
+    }
+
+    .install-topbar {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 12px;
+    }
+
+    .package-name {
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      font-size: 0.8rem;
+      color: #555;
+      padding: 6px 8px;
+      background: #f5f5f7;
+      border-radius: 7px;
+      border: 1px solid #ececf0;
+    }
+
+    .copy-btn {
+      position: absolute;
+      top: 50%;
+      right: 10px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      padding: 0;
+      border-radius: 7px;
+      background: transparent;
+      color: #86868b;
+      border: none;
+      transform: translateY(-50%);
+      z-index: 1;
+    }
+
+    .copy-btn:hover {
+      background: #f5f5f7;
+      color: #1d1d1f;
+    }
+
+    .copy-btn.copied {
+      color: #86868b;
+    }
+
+    .copy-btn svg {
+      width: 17px;
+      height: 17px;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      fill: none;
+      pointer-events: none;
+    }
+
+    .install-tabs {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 4px;
+      padding: 4px;
+      border-radius: 8px;
+      background: #ededf2;
+      margin-bottom: 12px;
+    }
+
+    .panel-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .install-tab {
+      height: 34px;
+      border: none;
+      border-radius: 6px;
+      background: transparent;
+      color: #66666d;
+      cursor: pointer;
+      font-size: 0.82rem;
+      font-weight: 650;
+      transition: color 0.16s cubic-bezier(0.2, 0, 0, 1), background 0.16s cubic-bezier(0.2, 0, 0, 1), transform 0.16s cubic-bezier(0.2, 0, 0, 1);
+    }
+
+    .install-tab:hover { color: #1d1d1f; }
+    .install-tab:active { transform: scale(0.96); }
+
+    .install-tab.active {
+      background: #fff;
+      color: #1d1d1f;
+      box-shadow: 0 1px 2px rgba(29, 29, 31, 0.08);
+    }
+
+    .code-box {
+      position: relative;
+      border-radius: 8px;
+      background: #fff;
+      color: #1d1d1f;
+      border: 1px solid #e5e5e5;
+      overflow: hidden;
+    }
+
+    .code-box::before {
+      content: "";
+      position: absolute;
+      inset: 0 0 auto 0;
+      height: 1px;
+      background: #1d1d1f;
+    }
+
+    .install-command {
+      display: block;
+      min-height: 50px;
+      padding: 17px 58px 17px 18px;
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      font-size: 0.9rem;
+      line-height: 1.5;
+      white-space: nowrap;
+      overflow-x: auto;
+      transition: opacity 0.18s cubic-bezier(0.16, 1, 0.3, 1), transform 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .install-command.switching {
+      opacity: 0;
+      transform: translateY(4px);
     }
 
     .panel-label {
@@ -46,7 +180,6 @@
       text-transform: uppercase;
       letter-spacing: 0.05em;
       color: #86868b;
-      margin-bottom: 14px;
     }
 
     /* Slider track with snap point markers */
@@ -201,49 +334,155 @@
 
     .sheet-content h2 { font-size: 1.25rem; font-weight: 600; margin-bottom: 12px; }
     .sheet-content p { color: #555; text-align: left; margin-bottom: 16px; line-height: 1.5; }
+    .sheet-content h3 { font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #86868b; margin: 18px 0 10px; }
+    .sheet-content pre {
+      background: #f5f5f7;
+      border: 1px solid #e5e5e5;
+      border-radius: 8px;
+      color: #1d1d1f;
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      font-size: 0.78rem;
+      line-height: 1.55;
+      margin-bottom: 16px;
+      overflow-x: auto;
+      padding: 14px;
+    }
     .sheet-content ul { list-style: none; padding: 0; }
     .sheet-content li { padding: 14px 0; border-bottom: 1px solid #e5e5e5; font-size: 0.95rem; }
     .sheet-content li:last-child { border-bottom: none; }
+
+    .site-footer {
+      width: 100%;
+      max-width: 400px;
+      margin-top: auto;
+      padding-top: 10px;
+      color: #86868b;
+      font-size: 0.82rem;
+      font-weight: 650;
+      line-height: 1.9;
+      text-align: center;
+    }
+
+    .site-footer a {
+      color: #1d1d1f;
+      font-weight: 750;
+      text-decoration: none;
+      text-underline-offset: 3px;
+    }
+
+    .site-footer a:hover { text-decoration: underline; }
+
+    .footer-line { display: block; }
+
+    .footer-links {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      color: #86868b;
+      font-size: 0.82rem;
+    }
+
+    @media (max-width: 390px) {
+      body { padding-inline: 14px; }
+      .panel { padding: 16px; }
+      .package-name { max-width: 190px; overflow-x: auto; }
+      .install-tab { font-size: 0.78rem; }
+      .install-command { font-size: 0.82rem; padding-inline: 14px; }
+      .install-command { padding-right: 54px; }
+    }
   </style>
 </head>
 <body>
   <h1>drwr</h1>
-  <p class="subtitle">A zero-dependency bottom sheet. Drag the markers to set snap points, then open the sheet.</p>
+  <p class="subtitle">
+    <span class="subtitle-line">A zero-dependency bottom sheet.</span>
+    <span class="subtitle-line">Drag the markers to set snap points, then open the sheet.</span>
+  </p>
 
-  <div class="panel">
-    <div class="panel-label">Snap points</div>
-    <div class="snap-track" id="snap-track">
-      <div class="snap-track-bar"></div>
-      <div class="snap-track-tick" style="left:100%"><span>1.0</span></div>
-    </div>
-    <div class="snap-track-hint">Drag to move · Double-tap track to add · Double-tap marker to remove</div>
-  </div>
-
-  <div class="panel">
-    <div class="panel-label">Layout</div>
-    <div class="layout-row">
-      <label>Width <span id="width-val">60%</span></label>
-      <input type="range" id="width-slider" min="30" max="100" value="60" step="5" />
-    </div>
-    <div class="layout-row">
-      <label>Align</label>
-      <div class="align-btns">
-        <button class="btn btn-outline align-btn active" data-align="center">Center</button>
-        <button class="btn btn-outline align-btn" data-align="left">Left</button>
-        <button class="btn btn-outline align-btn" data-align="right">Right</button>
+  <div class="panel install-panel">
+    <div class="panel-stack">
+      <div class="install-topbar">
+        <div class="panel-label">Install</div>
+      </div>
+      <div>
+        <div class="install-tabs" role="tablist" aria-label="Package manager">
+          <button class="install-tab active" type="button" role="tab" aria-selected="true" data-manager="pnpm">pnpm</button>
+          <button class="install-tab" type="button" role="tab" aria-selected="false" data-manager="bun">bun</button>
+          <button class="install-tab" type="button" role="tab" aria-selected="false" data-manager="yarn">yarn</button>
+          <button class="install-tab" type="button" role="tab" aria-selected="false" data-manager="npm">npm</button>
+        </div>
+        <div class="code-box">
+          <code class="install-command" id="install-command">pnpm add @alexapvl/drwr</code>
+          <button class="copy-btn" id="copy-install" type="button" aria-label="Copy install command" title="Copy">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="9" y="9" width="11" height="11" rx="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+          </button>
+        </div>
       </div>
     </div>
   </div>
 
   <div class="panel">
-    <div class="panel-label">Open to</div>
-    <div class="controls" id="snap-buttons"></div>
+    <div class="panel-stack">
+      <div class="panel-label">Snap points</div>
+      <div>
+        <div class="snap-track" id="snap-track">
+          <div class="snap-track-bar"></div>
+          <div class="snap-track-tick" style="left:100%"><span>1.0</span></div>
+        </div>
+        <div class="snap-track-hint">Drag to move · Double-tap track to add · Double-tap marker to remove</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-stack">
+      <div class="panel-label">Layout</div>
+      <div>
+        <div class="layout-row">
+          <label>Width <span id="width-val">60%</span></label>
+          <input type="range" id="width-slider" min="30" max="100" value="60" step="5" />
+        </div>
+        <div class="layout-row">
+          <label>Align</label>
+          <div class="align-btns">
+            <button class="btn btn-outline align-btn active" data-align="center">Center</button>
+            <button class="btn btn-outline align-btn" data-align="left">Left</button>
+            <button class="btn btn-outline align-btn" data-align="right">Right</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-stack">
+      <div class="panel-label">Demo button controls</div>
+      <div class="controls" id="snap-buttons"></div>
+    </div>
   </div>
 
   <div id="my-sheet" hidden>
     <div class="sheet-content">
       <h2>Hello from drwr</h2>
       <p>Drag the handle to move this sheet. Flick down to close. Try the snap points.</p>
+      <h3>Usage</h3>
+      <pre><code>import { Sheet } from "@alexapvl/drwr";
+import "@alexapvl/drwr/style.css";
+
+const sheet = new Sheet("#sheet", {
+  snapPoints: [0, 0.3, 0.6, 1],
+  defaultSnap: 0.6,
+  overlay: true,
+  dragHandle: true,
+});
+
+button.addEventListener("click", () => {
+  sheet.snapTo(0.6);
+});</code></pre>
       <ul>
         <li>Spring physics animation</li>
         <li>Velocity-aware snapping</li>
@@ -256,6 +495,16 @@
       </ul>
     </div>
   </div>
+
+  <footer class="site-footer">
+    <span class="footer-line">Inspired by <a href="https://emilkowal.ski" target="_blank" rel="noreferrer">Emil Kowalski</a></span>
+    <span class="footer-line">Made by <a href="https://apvl.dev" target="_blank" rel="noreferrer">Apăvăloaiei Alexandru</a></span>
+    <span class="footer-links">
+      <a href="https://www.npmjs.com/package/@alexapvl/drwr" target="_blank" rel="noreferrer">npm</a>
+      <span aria-hidden="true">•</span>
+      <a href="https://github.com/alexapvl/drwr" target="_blank" rel="noreferrer">GitHub</a>
+    </span>
+  </footer>
 
   <script type="module" src="./demo.ts"></script>
 </body>

@@ -7,8 +7,19 @@ const buttonsEl = document.getElementById("snap-buttons")!;
 const widthSlider = document.getElementById("width-slider") as HTMLInputElement;
 const widthVal = document.getElementById("width-val")!;
 const alignBtns = document.querySelectorAll<HTMLButtonElement>(".align-btn");
+const installTabs = document.querySelectorAll<HTMLButtonElement>(".install-tab");
+const installCommand = document.getElementById("install-command")!;
+const copyInstall = document.getElementById("copy-install") as HTMLButtonElement;
 
 let snapPoints = [0, 0.3, 0.6, 1.0];
+let activeInstallManager = "pnpm";
+
+const installCommands: Record<string, string> = {
+  pnpm: "pnpm add @alexapvl/drwr",
+  bun: "bun add @alexapvl/drwr",
+  yarn: "yarn add @alexapvl/drwr",
+  npm: "npm install @alexapvl/drwr",
+};
 
 const sheet = new Sheet(container, {
   snapPoints,
@@ -35,6 +46,52 @@ alignBtns.forEach((btn) => {
     btn.classList.add("active");
     sheet.setLayout({ align: btn.dataset.align as SheetAlign });
   });
+});
+
+function setInstallManager(manager: string) {
+  if (!installCommands[manager] || manager === activeInstallManager) return;
+  activeInstallManager = manager;
+
+  installTabs.forEach((tab) => {
+    const active = tab.dataset.manager === manager;
+    tab.classList.toggle("active", active);
+    tab.setAttribute("aria-selected", String(active));
+  });
+
+  installCommand.classList.add("switching");
+  window.setTimeout(() => {
+    installCommand.textContent = installCommands[manager];
+    installCommand.classList.remove("switching");
+  }, 120);
+}
+
+installTabs.forEach((tab) => {
+  tab.addEventListener("click", () => setInstallManager(tab.dataset.manager ?? "pnpm"));
+});
+
+const copyIcon = copyInstall.innerHTML;
+const copiedIcon = `
+  <svg viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M20 6 9 17l-5-5"></path>
+  </svg>
+`;
+
+copyInstall.addEventListener("click", async () => {
+  const command = installCommands[activeInstallManager];
+
+  try {
+    await navigator.clipboard.writeText(command);
+    copyInstall.innerHTML = copiedIcon;
+    copyInstall.title = "Copied";
+    copyInstall.classList.add("copied");
+    window.setTimeout(() => {
+      copyInstall.innerHTML = copyIcon;
+      copyInstall.title = "Copy";
+      copyInstall.classList.remove("copied");
+    }, 1400);
+  } catch {
+    window.prompt("Copy install command", command);
+  }
 });
 
 const TRACK_MAX = 1;
