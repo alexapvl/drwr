@@ -81,8 +81,19 @@ export function attachGestures(
     tracker.reset();
     tracker.add(e.clientY);
     // No pointer capture yet: capturing here would retarget the click to the
-    // sheet, so buttons and links inside it would never get their tap. The
-    // pointer is captured once a drag actually starts (onPointerMove).
+    // sheet, so buttons and links inside it would never get their tap. Until
+    // a drag starts, the pointer is followed on the window, since it can leave
+    // the sheet (up past a handle near its top edge) before the drag threshold.
+    // Once a drag starts it's captured (onPointerMove), so a drag never clicks.
+    window.addEventListener("pointermove", onPointerMove);
+    window.addEventListener("pointerup", onPointerUp);
+    window.addEventListener("pointercancel", onPointerCancel);
+  }
+
+  function stopFollowing() {
+    window.removeEventListener("pointermove", onPointerMove);
+    window.removeEventListener("pointerup", onPointerUp);
+    window.removeEventListener("pointercancel", onPointerCancel);
   }
 
   function onPointerMove(e: PointerEvent) {
@@ -139,6 +150,7 @@ export function attachGestures(
   function onPointerUp(e: PointerEvent) {
     if (!state.active) return;
     state.active = false;
+    stopFollowing();
     if (sheetEl.hasPointerCapture(e.pointerId)) sheetEl.releasePointerCapture(e.pointerId);
 
     if (!state.dragging) return;
@@ -151,6 +163,7 @@ export function attachGestures(
   function onPointerCancel(e: PointerEvent) {
     if (!state.active) return;
     state.active = false;
+    stopFollowing();
     if (sheetEl.hasPointerCapture(e.pointerId)) sheetEl.releasePointerCapture(e.pointerId);
 
     if (!state.dragging) return;
@@ -159,9 +172,6 @@ export function attachGestures(
   }
 
   sheetEl.addEventListener("pointerdown", onPointerDown);
-  sheetEl.addEventListener("pointermove", onPointerMove);
-  sheetEl.addEventListener("pointerup", onPointerUp);
-  sheetEl.addEventListener("pointercancel", onPointerCancel);
 
   const onContextMenu = (e: Event) => {
     if (state.active) e.preventDefault();
@@ -170,9 +180,7 @@ export function attachGestures(
 
   return () => {
     sheetEl.removeEventListener("pointerdown", onPointerDown);
-    sheetEl.removeEventListener("pointermove", onPointerMove);
-    sheetEl.removeEventListener("pointerup", onPointerUp);
-    sheetEl.removeEventListener("pointercancel", onPointerCancel);
+    stopFollowing();
     sheetEl.removeEventListener("contextmenu", onContextMenu);
   };
 }
