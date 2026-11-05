@@ -80,8 +80,9 @@ export function attachGestures(
 
     tracker.reset();
     tracker.add(e.clientY);
-
-    sheetEl.setPointerCapture(e.pointerId);
+    // No pointer capture yet: capturing here would retarget the click to the
+    // sheet, so buttons and links inside it would never get their tap. The
+    // pointer is captured once a drag actually starts (onPointerMove).
   }
 
   function onPointerMove(e: PointerEvent) {
@@ -126,6 +127,7 @@ export function attachGestures(
     // Begin drag on first qualifying move
     if (!state.dragging) {
       state.dragging = true;
+      sheetEl.setPointerCapture(e.pointerId);
       callbacks.onStart(state.startY);
     }
 
@@ -137,7 +139,7 @@ export function attachGestures(
   function onPointerUp(e: PointerEvent) {
     if (!state.active) return;
     state.active = false;
-    sheetEl.releasePointerCapture(e.pointerId);
+    if (sheetEl.hasPointerCapture(e.pointerId)) sheetEl.releasePointerCapture(e.pointerId);
 
     if (!state.dragging) return;
     state.dragging = false;
@@ -149,7 +151,7 @@ export function attachGestures(
   function onPointerCancel(e: PointerEvent) {
     if (!state.active) return;
     state.active = false;
-    sheetEl.releasePointerCapture(e.pointerId);
+    if (sheetEl.hasPointerCapture(e.pointerId)) sheetEl.releasePointerCapture(e.pointerId);
 
     if (!state.dragging) return;
     state.dragging = false;
