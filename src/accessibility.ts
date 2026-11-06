@@ -113,37 +113,52 @@ export function removeAriaAttributes(
   }
 }
 
+/* one lock for the page, however many sheets hold it. each sheet used to
+   save and restore the page's overflow on its own, so when one sheet opened
+   while another was still closing (switching from one to the next), the
+   second saved the first's "hidden" as the page's own and put it back when
+   it closed: the page stayed locked with no sheet open. now the first lock
+   saves the page as it was, and the last unlock puts it back. */
+let holders = 0;
+let saved: { body: string; html: string } | null = null;
+
+// On iOS Safari, overflow:hidden on body/html doesn't fully prevent
+// scroll on its own. We block touchmove on the document as a fallback.
+function preventTouch(e: TouchEvent) {
+  // Allow scrolling inside the sheet content
+  let el = e.target as HTMLElement | null;
+  while (el) {
+    if (el.classList?.contains("drwr-content")) return;
+    el = el.parentElement;
+  }
+  e.preventDefault();
+}
+
 /**
  * iOS-safe scroll lock. Prevents background scrolling without position:fixed
  * to avoid the iOS Safari viewport jump when the address bar is visible.
+ * Counted: the page unlocks when the last sheet holding it lets go.
  */
 export function lockScroll(): () => void {
   const body = document.body;
   const html = document.documentElement;
 
-  const originalBodyOverflow = body.style.overflow;
-  const originalHtmlOverflow = html.style.overflow;
+  if (holders++ === 0) {
+    saved = { body: body.style.overflow, html: html.style.overflow };
+    html.style.overflow = "hidden";
+    body.style.overflow = "hidden";
+    document.addEventListener("touchmove", preventTouch, { passive: false });
+  }
 
-  html.style.overflow = "hidden";
-  body.style.overflow = "hidden";
-
-  // On iOS Safari, overflow:hidden on body/html doesn't fully prevent
-  // scroll on its own. We block touchmove on the document as a fallback.
-  const preventTouch = (e: TouchEvent) => {
-    // Allow scrolling inside the sheet content
-    let el = e.target as HTMLElement | null;
-    while (el) {
-      if (el.classList?.contains("drwr-content")) return;
-      el = el.parentElement;
-    }
-    e.preventDefault();
-  };
-
-  document.addEventListener("touchmove", preventTouch, { passive: false });
-
+  let released = false;
   return () => {
-    body.style.overflow = originalBodyOverflow;
-    html.style.overflow = originalHtmlOverflow;
+    if (released) return;
+    released = true;
+    if (--holders > 0) return;
+    holders = 0;
+    body.style.overflow = saved?.body ?? "";
+    html.style.overflow = saved?.html ?? "";
+    saved = null;
     document.removeEventListener("touchmove", preventTouch);
   };
 }
