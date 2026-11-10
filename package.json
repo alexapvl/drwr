@@ -1,6 +1,6 @@
 {
   "name": "@alexapvl/drwr",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "A zero-dependency, framework-agnostic bottom sheet / drawer component",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -20,7 +20,8 @@
     "./style.css": "./dist/style.css"
   },
   "files": [
-    "dist"
+    "dist",
+    "skills"
   ],
   "sideEffects": [
     "**/*.css"

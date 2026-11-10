@@ -102,6 +102,19 @@ All visual tokens are exposed as CSS custom properties:
 }
 ```
 
+## Agent skill
+
+`skills/drwr-web/SKILL.md` is an agent skill (Claude Code, Codex, Cursor and others that read `SKILL.md`) for wiring drwr into a website as a lazy-loaded mobile menu: when to load it, trigger state, stacking, content-height snaps, and a hamburger-to-X icon that morphs cleanly.
+
+It ships in the npm package. To use it in a project:
+
+```bash
+mkdir -p .claude/skills
+cp -R node_modules/@alexapvl/drwr/skills/drwr-web .claude/skills/
+```
+
+Or copy it from this repo into your user skills folder (for example `~/.claude/skills/drwr-web`).
+
 ## License
 
 MIT
