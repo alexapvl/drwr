@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>drwr playground</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #f6f6f4;
+        --fg: #1b1b1a;
+        --muted: #6b6b66;
+        --card: #fff;
+        --line: rgba(0, 0, 0, 0.1);
+        --accent: #2f6fed;
+        --log-bg: rgba(20, 20, 20, 0.88);
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #141413;
+          --fg: #ececea;
+          --muted: #9a9a94;
+          --card: #1f1f1e;
+          --line: rgba(255, 255, 255, 0.1);
+          --drwr-bg: #1f1f1e;
+          --drwr-handle-color: rgba(255, 255, 255, 0.3);
+          --drwr-border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--fg);
+        font: 15px/1.45 system-ui, -apple-system, sans-serif;
+        -webkit-text-size-adjust: 100%;
+      }
+      main { max-width: 720px; margin: 0 auto; padding: 72px 16px 40px; }
+      h1 { font-size: 20px; margin: 0 0 4px; }
+      p.lead { color: var(--muted); margin: 0 0 20px; }
+      .grid { display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+      .scenario {
+        text-align: left;
+        padding: 12px 14px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: var(--card);
+        color: inherit;
+        font: inherit;
+        cursor: pointer;
+      }
+      .scenario b { display: block; font-size: 15px; }
+      .scenario span { color: var(--muted); font-size: 13px; }
+      .scenario:active { transform: scale(0.98); }
+      #qr { margin-top: 28px; display: none; gap: 16px; align-items: center; }
+      #qr canvas { border-radius: 8px; background: #fff; padding: 8px; }
+      #qr code { word-break: break-all; }
+      .filler { margin-top: 32px; color: var(--muted); }
+      .filler p { margin: 0 0 14px; }
+      #anchor-target { padding: 16px; border: 2px dashed var(--accent); border-radius: 12px; }
+
+      /* the event log: above the overlay, out of the sheet's way */
+      #log {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 100000;
+        background: var(--log-bg);
+        color: #e8e8e8;
+        font: 11.5px/1.35 ui-monospace, Menlo, monospace;
+        padding: max(6px, env(safe-area-inset-top)) 10px 6px;
+        height: calc(56px + env(safe-area-inset-top));
+        overflow: hidden;
+        display: flex;
+        flex-direction: column-reverse;
+      }
+      #log[data-expanded] { height: 50vh; overflow-y: auto; }
+      #log div { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      #log .t { color: #8fb4ff; }
+      #log-toggle {
+        position: fixed;
+        top: max(6px, env(safe-area-inset-top));
+        right: 8px;
+        z-index: 100001;
+        font: 11px ui-monospace, Menlo, monospace;
+        border: 0;
+        border-radius: 6px;
+        padding: 3px 7px;
+        background: #444;
+        color: #fff;
+      }
+
+      /* sheet content building blocks */
+      .sheet-pad { padding: 4px 0 12px; }
+      .sheet-pad h2 { font-size: 17px; margin: 0 0 4px; }
+      .sheet-pad .hint { color: var(--muted); font-size: 13px; margin: 0 0 12px; }
+      .row { padding: 13px 4px; border-bottom: 1px solid var(--line); }
+      .row:last-child { border-bottom: 0; }
+      .inner-scroll { max-height: 220px; overflow-y: auto; border: 1px solid var(--line); border-radius: 10px; margin: 12px 0; padding: 0 10px; }
+      .carousel { display: flex; gap: 8px; overflow-x: auto; margin: 12px 0; padding-bottom: 4px; }
+      .carousel div { flex: 0 0 140px; height: 84px; border-radius: 10px; background: color-mix(in srgb, var(--accent) 25%, transparent); display: grid; place-items: center; }
+      .btns { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+      .btns button, .btns a {
+        font: inherit;
+        padding: 10px 14px;
+        border-radius: 10px;
+        border: 1px solid var(--line);
+        background: var(--card);
+        color: var(--accent);
+        text-decoration: none;
+      }
+      label { display: block; margin: 10px 0 4px; font-size: 13px; color: var(--muted); }
+      input, textarea, select { width: 100%; font: 16px system-ui; padding: 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: inherit; }
+      input[type="range"] { padding: 0; }
+      .gated .drwr-content:not([data-top]) { overflow-y: hidden; }
+    </style>
+  </head>
+  <body>
+    <div id="log"></div>
+    <button id="log-toggle" type="button">log</button>
+
+    <main>
+      <h1>drwr playground</h1>
+      <p class="lead">Dev only. Each button opens a sheet built for one edge case. The bar at the top logs callbacks with the time since your last tap.</p>
+      <div class="grid" id="scenarios"></div>
+
+      <div id="qr">
+        <canvas id="qr-canvas"></canvas>
+        <div>
+          <b>Open on your phone</b><br />
+          <span class="hint">Same Wi-Fi. Scan, or type:</span><br />
+          <code id="qr-url"></code>
+        </div>
+      </div>
+
+      <div class="filler" id="filler"></div>
+      <div id="anchor-target">#anchor-target: a hash link in the "Links" sheet scrolls here.</div>
+      <div class="filler" id="filler-2"></div>
+    </main>
+
+    <script type="module" src="./playground.ts"></script>
+  </body>
+</html>
