@@ -2,14 +2,21 @@ export interface SpringConfig {
   damping: number;
   stiffness: number;
   mass: number;
+  /** Distance in px from the target below which the spring may stop. */
   restThreshold: number;
+  /** Speed in px/s below which the spring may stop. */
+  restVelocity: number;
 }
 
 export const DEFAULT_SPRING: SpringConfig = {
   damping: 30,
   stiffness: 200,
   mass: 1,
-  restThreshold: 0.5,
+  // A critically damped spring spends its last few hundred ms creeping the
+  // final pixel. Stopping within 1px at under 20px/s is invisible and lets
+  // onOpen / onClose / onSnap fire about 0.3s sooner.
+  restThreshold: 1,
+  restVelocity: 20,
 };
 
 export interface SpringState {
@@ -48,9 +55,11 @@ export function isAtRest(
   target: number,
   velocity: number,
   threshold: number = DEFAULT_SPRING.restThreshold,
+  velocityThreshold: number = DEFAULT_SPRING.restVelocity,
 ): boolean {
   return (
-    Math.abs(current - target) < threshold && Math.abs(velocity) < threshold
+    Math.abs(current - target) < threshold &&
+    Math.abs(velocity) < velocityThreshold
   );
 }
 
@@ -88,7 +97,7 @@ export function animateSpring(
 
     onUpdate(position);
 
-    if (isAtRest(position, to, velocity, cfg.restThreshold)) {
+    if (isAtRest(position, to, velocity, cfg.restThreshold, cfg.restVelocity)) {
       onUpdate(to);
       onComplete();
       return;
