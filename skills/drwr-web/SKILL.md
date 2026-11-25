@@ -203,11 +203,12 @@ Full token list: drwr README. Do not restyle by forking `style.css`.
 
 ## In-sheet links
 
-On click: close the sheet, then navigate.
+On click: navigate **at once** and close alongside. Never wait for the close animation (or `onClose`) before navigating: that is what makes a tap feel laggy.
 
-- Same-page hash: `preventDefault`, `scrollIntoView`, `history.pushState`.
+- Same-page hash: `preventDefault`, `sheet.close()`, `scrollIntoView`, `history.pushState`, all in the same handler.
 - Downloads and `target="_blank"`: do not preventDefault; just close.
-- Other internal URLs: close, then `location.assign`.
+- Other URLs: do not preventDefault and do not close. Let the browser follow the link: the page stays on screen until the next one paints, and drwr resets itself if the page comes back from the back/forward cache.
+- Client-side routers: call `sheet.close()` and route in the same tick.
 
 Honor `prefers-reduced-motion` for the scroll.
 
@@ -226,5 +227,5 @@ Show the hamburger and host behavior only under the same query used in JS. Deskt
 - [ ] Hamburger bars turn around their own centers and move before they turn (no ">" mid-frame, cross centered)
 - [ ] Header z-index stays above the sheet until `onClose`
 - [ ] `--drwr-*` tokens match the site
-- [ ] In-sheet links close first, then navigate
+- [ ] In-sheet links navigate at once, never after the close animation
 - [ ] `destroy()` on breakpoint change and teardown
