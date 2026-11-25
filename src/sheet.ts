@@ -53,6 +53,12 @@ export interface SheetOptions {
   onOpen?: () => void;
   /** Called when close animation completes. */
   onClose?: () => void;
+  /**
+   * Called the moment the sheet starts closing, before the animation:
+   * close(), Escape, an overlay tap, or a drag released to close.
+   * Use it for anything that should not wait for the sheet to slide away.
+   */
+  onCloseStart?: () => void;
   onSnap?: (point: number) => void;
 }
 
@@ -77,6 +83,7 @@ export type MutableSheetOptions = Pick<
   | "reducedMotion"
   | "onOpen"
   | "onClose"
+  | "onCloseStart"
   | "onSnap"
 >;
 
@@ -110,6 +117,8 @@ export class Sheet {
   private onResize: (() => void) | null = null;
   private naturalContentH = 0;
   private destroyed = false;
+  /** Heading to closed: onCloseStart has fired for this close. */
+  private closing = false;
 
   private static sanitizeSnapPoints(raw: number[]): number[] {
     const valid = raw.filter((n) => Number.isFinite(n) && n >= 0 && n <= 1);
@@ -154,6 +163,7 @@ export class Sheet {
       reducedMotion: options.reducedMotion ?? true,
       onOpen: options.onOpen ?? (() => {}),
       onClose: options.onClose ?? (() => {}),
+      onCloseStart: options.onCloseStart ?? (() => {}),
       onSnap: options.onSnap ?? (() => {}),
     };
 
@@ -376,6 +386,12 @@ export class Sheet {
     const wasOpen = this.state === "open" || this.state === "dragging";
     this.cancelCurrentAnimation();
     this.state = "animating";
+
+    const closing = targetH <= 0.5;
+    const startsClosing = closing && !this.closing;
+    this.closing = closing;
+    if (startsClosing) this.options.onCloseStart();
+    if (this.destroyed) return;
     const onDone = () => {
       this.currentH = targetH;
       this.render(targetH);
@@ -447,6 +463,7 @@ export class Sheet {
     this.currentSnap = 0;
     this.render(0);
     this.state = "closed";
+    this.closing = false;
 
     if (this.overlayEl) {
       this.overlayEl.style.opacity = "0";
@@ -605,6 +622,7 @@ export class Sheet {
     if (opts.reducedMotion !== undefined) this.options.reducedMotion = opts.reducedMotion;
     if (opts.onOpen !== undefined) this.options.onOpen = opts.onOpen;
     if (opts.onClose !== undefined) this.options.onClose = opts.onClose;
+    if (opts.onCloseStart !== undefined) this.options.onCloseStart = opts.onCloseStart;
     if (opts.onSnap !== undefined) this.options.onSnap = opts.onSnap;
 
     if (opts.ariaLabel !== undefined || opts.ariaLabelledBy !== undefined || opts.modal !== undefined) {

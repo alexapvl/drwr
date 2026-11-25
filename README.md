@@ -67,6 +67,7 @@ sheet.destroy();
 | `reducedMotion`       | `boolean`                       | `true`                          | Skip spring animation when user prefers reduced motion                                   |
 | `onOpen`              | `() => void`                    | —                               | Called when sheet opens                                                                  |
 | `onClose`             | `() => void`                    | —                               | Called when sheet closes                                                                 |
+| `onCloseStart`        | `() => void`                    | —                               | Called as soon as the sheet starts closing, before the animation                         |
 | `onSnap`              | `(point: number) => void`       | —                               | Called when sheet snaps to a point                                                       |
 
 ## Methods

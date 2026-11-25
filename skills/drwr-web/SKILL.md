@@ -93,7 +93,7 @@ const sheet = new Sheet(host, {
   sidePadding: 16,
   trapFocus: false,       // hamburger stays in the header, outside the sheet
   ariaLabel: "navigation",
-  onClose: () => syncTrigger(false),
+  onCloseStart: () => syncTrigger(false),
 });
 ```
 
@@ -118,16 +118,12 @@ drwr decides between moving the sheet and scrolling its content. Below the top s
 
 ## Trigger state
 
-`onOpen` / `onClose` fire when the **spring finishes**, not when the user commits. For a hamburger that morphs to X:
+`onOpen` / `onClose` fire when the **spring finishes**. `onCloseStart` fires the moment a close is decided: `close()`, Escape, an overlay tap, or a drag released to close. For a hamburger that morphs to X:
 
 1. Opening: set expanded + `sheet.open()` immediately.
-2. Closing via button: flip trigger first, then `sheet.close()`.
-3. Overlay click and Escape: flip trigger immediately (library also closes).
-4. Drag-to-close: predict close on `pointerup` while `data-dragging="true"`, then flip the trigger **before** `onClose`.
+2. Closing, by any route: flip the trigger in `onCloseStart`. No prediction of drag releases needed.
 
-Keep a `html[data-sheet-open]` flag so the header can sit above the sheet during open **and** during the close animation. When flipping closed early, pass a "keep header pinned" flag and only drop the attribute in `onClose`.
-
-For drag-to-close, track pointer velocity during the drag and, on release, predict whether the sheet will settle closed (position past `closeThreshold`, or a fast downward fling). Flip the trigger as soon as that prediction says closed. Skip this for a sheet with no persistent trigger chrome.
+Keep a `html[data-sheet-open]` flag so the header can sit above the sheet during open **and** during the close animation: set it on open, drop it in `onClose`.
 
 Also update `aria-expanded` and `aria-label` (`Open menu` / `Close menu`) in the same sync function.
 
