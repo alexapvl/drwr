@@ -110,6 +110,10 @@ sheet.setSnapPoints([0, contentSnap]);
 
 Call `sheet.refresh()` + recompute snaps after content changes.
 
+### Scrollable content
+
+drwr decides between moving the sheet and scrolling its content. Below the top snap, a swipe up opens the sheet further. At the top snap, it scrolls the content. Pulling down with the content scrolled to its top moves the sheet. Do not gate the content's `overflow` on the snap point yourself: hiding overflow until `onSnap` fires blocks scrolling until the spring settles.
+
 `trapFocus: false` is required when the trigger stays focusable above the sheet. If the trigger lives **inside** the sheet, leave the default (`true`).
 
 ## Trigger state

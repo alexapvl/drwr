@@ -355,6 +355,10 @@ export class Sheet {
 
           this.animateToH(targetH, velocityH);
         },
+        canGrow: () => {
+          const snaps = this.snapPixels();
+          return this.currentH < snaps[snaps.length - 1] - 1;
+        },
       },
     );
   }

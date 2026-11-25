@@ -4,6 +4,8 @@ export interface GestureCallbacks {
   onStart: (y: number) => void;
   onMove: (y: number, deltaY: number) => void;
   onEnd: (velocity: number) => void;
+  /** True while the sheet is below its highest snap point. */
+  canGrow: () => boolean;
 }
 
 interface GestureState {
@@ -18,6 +20,9 @@ interface GestureState {
   scrolling: boolean;
   scrollTarget: HTMLElement | null;
 }
+
+/** What a move turned out to be. */
+type Move = "pending" | "drag" | "scroll";
 
 const DIRECTION_LOCK_THRESHOLD = 6;
 const SCROLL_LOCK_THRESHOLD = 3;
@@ -40,6 +45,18 @@ function findScrollableAncestor(
   return null;
 }
 
+/*
+ * Touch and mouse take different paths.
+ *
+ * Touch: the browser owns scrolling. With pointer events it claims a vertical
+ * swipe over scrollable content (touch-action: pan-y) and sends pointercancel,
+ * so the sheet could never be dragged from its content. Touch events let us
+ * decide first: a non-passive touchmove that calls preventDefault() before
+ * the browser starts scrolling keeps the gesture for the sheet.
+ *
+ * Mouse and pen: nothing scrolls on drag, so pointer events with pointer
+ * capture once a drag starts (capturing earlier retargets the click).
+ */
 export function attachGestures(
   sheetEl: HTMLElement,
   handleEl: HTMLElement | null,
@@ -60,125 +77,170 @@ export function attachGestures(
     scrollTarget: null,
   };
 
-  function onPointerDown(e: PointerEvent) {
-    const isHandle = handleEl?.contains(e.target as Node);
-    if (handleOnly && !isHandle) return;
-    const scrollable = isHandle
-      ? null
-      : findScrollableAncestor(e.target, sheetEl);
+  /** Start tracking a gesture. False when this target doesn't drag. */
+  function begin(x: number, y: number, target: EventTarget | null): boolean {
+    const isHandle = handleEl?.contains(target as Node) ?? false;
+    if (handleOnly && !isHandle) return false;
 
     state.active = true;
     state.dragging = false;
-    state.startY = e.clientY;
-    state.currentY = e.clientY;
-    state.startX = e.clientX;
-    state.currentX = e.clientX;
+    state.startY = y;
+    state.currentY = y;
+    state.startX = x;
+    state.currentX = x;
     state.directionLocked = false;
     state.lockedAxis = null;
     state.scrolling = false;
-    state.scrollTarget = scrollable;
+    state.scrollTarget = isHandle ? null : findScrollableAncestor(target, sheetEl);
 
     tracker.reset();
-    tracker.add(e.clientY);
-    // No pointer capture yet: capturing here would retarget the click to the
-    // sheet, so buttons and links inside it would never get their tap. Until
-    // a drag starts, the pointer is followed on the window, since it can leave
-    // the sheet (up past a handle near its top edge) before the drag threshold.
-    // Once a drag starts it's captured (onPointerMove), so a drag never clicks.
-    window.addEventListener("pointermove", onPointerMove);
-    window.addEventListener("pointerup", onPointerUp);
-    window.addEventListener("pointercancel", onPointerCancel);
+    tracker.add(y);
+    return true;
   }
 
-  function stopFollowing() {
-    window.removeEventListener("pointermove", onPointerMove);
-    window.removeEventListener("pointerup", onPointerUp);
-    window.removeEventListener("pointercancel", onPointerCancel);
-  }
+  function move(x: number, y: number): Move {
+    if (!state.active || state.scrolling) return "scroll";
 
-  function onPointerMove(e: PointerEvent) {
-    if (!state.active || state.scrolling) return;
-
-    state.currentY = e.clientY;
-    state.currentX = e.clientX;
+    state.currentY = y;
+    state.currentX = x;
 
     const dx = Math.abs(state.currentX - state.startX);
     const dy = Math.abs(state.currentY - state.startY);
     const deltaY = state.currentY - state.startY;
 
-    // Direction locking
     if (!state.directionLocked) {
       if (dx > DIRECTION_LOCK_THRESHOLD || dy > DIRECTION_LOCK_THRESHOLD) {
         state.directionLocked = true;
         state.lockedAxis = dy >= dx ? "y" : "x";
       }
-      if (dy < SCROLL_LOCK_THRESHOLD) return;
+      if (dy < SCROLL_LOCK_THRESHOLD && state.lockedAxis !== "x") return "pending";
     }
 
-    if (state.lockedAxis === "x") return;
+    // Sideways: leave it to whatever scrolls sideways inside the sheet.
+    if (state.lockedAxis === "x") {
+      state.scrolling = true;
+      return "scroll";
+    }
 
-    // Scroll vs drag disambiguation (decided once)
+    // Over scrollable content, decided once: the sheet moves when the content
+    // is at its top and pulled down, or when the sheet can still grow and is
+    // pushed up (it opens all the way before the content scrolls). Otherwise
+    // the content scrolls.
     if (state.scrollTarget && !state.dragging) {
-      const st = state.scrollTarget;
-      const atTop = st.scrollTop <= 0;
-      const atBottom = st.scrollTop + st.clientHeight >= st.scrollHeight - 1;
-      const draggingDown = deltaY > 0;
-
-      if (draggingDown && atTop) {
-        // At top, pulling down → drag sheet
-      } else if (!draggingDown && atBottom) {
-        // At bottom, pulling up → drag sheet
-      } else {
-        // Let the content scroll
+      const atTop = state.scrollTarget.scrollTop <= 0;
+      const pullingDown = deltaY > 0;
+      const sheetMoves = pullingDown ? atTop : callbacks.canGrow();
+      if (!sheetMoves) {
         state.scrolling = true;
-        return;
+        return "scroll";
       }
     }
 
-    // Begin drag on first qualifying move
     if (!state.dragging) {
       state.dragging = true;
-      sheetEl.setPointerCapture(e.pointerId);
       callbacks.onStart(state.startY);
     }
 
-    e.preventDefault();
-    tracker.add(e.clientY);
+    tracker.add(y);
     callbacks.onMove(state.currentY, deltaY);
+    return "drag";
+  }
+
+  function end(cancelled: boolean) {
+    if (!state.active) return;
+    state.active = false;
+    if (!state.dragging) return;
+    state.dragging = false;
+    callbacks.onEnd(cancelled ? 0 : tracker.getVelocity());
+  }
+
+  // --- Touch ---
+
+  let touchId: number | null = null;
+
+  const findTouch = (list: TouchList) => {
+    for (let i = 0; i < list.length; i++) {
+      if (list[i].identifier === touchId) return list[i];
+    }
+    return null;
+  };
+
+  function onTouchStart(e: TouchEvent) {
+    // A second finger: hand the gesture back (pinch-zoom, etc).
+    if (touchId !== null) {
+      end(true);
+      touchId = null;
+      return;
+    }
+    const t = e.changedTouches[0];
+    if (!t || !begin(t.clientX, t.clientY, e.target)) return;
+    touchId = t.identifier;
+  }
+
+  function onTouchMove(e: TouchEvent) {
+    if (touchId === null) return;
+    const t = findTouch(e.changedTouches);
+    if (!t) return;
+    const result = move(t.clientX, t.clientY);
+    if (result === "drag" && e.cancelable) e.preventDefault();
+  }
+
+  function onTouchEnd(e: TouchEvent) {
+    if (touchId === null || !findTouch(e.changedTouches)) return;
+    touchId = null;
+    end(e.type === "touchcancel");
+  }
+
+  // --- Mouse and pen ---
+
+  function onPointerDown(e: PointerEvent) {
+    if (e.pointerType === "touch" || e.button !== 0) return;
+    if (!begin(e.clientX, e.clientY, e.target)) return;
+    // No pointer capture yet: capturing here would retarget the click to the
+    // sheet, so buttons and links inside it would never get their tap. Until
+    // a drag starts, the pointer is followed on the window, since it can leave
+    // the sheet (up past a handle near its top edge) before the drag threshold.
+    // Once a drag starts it's captured, so a drag never clicks.
+    window.addEventListener("pointermove", onPointerMove);
+    window.addEventListener("pointerup", onPointerUp);
+    window.addEventListener("pointercancel", onPointerUp);
+  }
+
+  function stopFollowing() {
+    window.removeEventListener("pointermove", onPointerMove);
+    window.removeEventListener("pointerup", onPointerUp);
+    window.removeEventListener("pointercancel", onPointerUp);
+  }
+
+  function onPointerMove(e: PointerEvent) {
+    const wasDragging = state.dragging;
+    if (move(e.clientX, e.clientY) !== "drag") return;
+    if (!wasDragging) sheetEl.setPointerCapture(e.pointerId);
+    e.preventDefault();
   }
 
   function onPointerUp(e: PointerEvent) {
-    if (!state.active) return;
-    state.active = false;
     stopFollowing();
     if (sheetEl.hasPointerCapture(e.pointerId)) sheetEl.releasePointerCapture(e.pointerId);
-
-    if (!state.dragging) return;
-    state.dragging = false;
-
-    const velocity = tracker.getVelocity();
-    callbacks.onEnd(velocity);
+    end(e.type === "pointercancel");
   }
-
-  function onPointerCancel(e: PointerEvent) {
-    if (!state.active) return;
-    state.active = false;
-    stopFollowing();
-    if (sheetEl.hasPointerCapture(e.pointerId)) sheetEl.releasePointerCapture(e.pointerId);
-
-    if (!state.dragging) return;
-    state.dragging = false;
-    callbacks.onEnd(0);
-  }
-
-  sheetEl.addEventListener("pointerdown", onPointerDown);
 
   const onContextMenu = (e: Event) => {
     if (state.active) e.preventDefault();
   };
+
+  sheetEl.addEventListener("touchstart", onTouchStart, { passive: true });
+  sheetEl.addEventListener("touchmove", onTouchMove, { passive: false });
+  sheetEl.addEventListener("touchend", onTouchEnd);
+  sheetEl.addEventListener("touchcancel", onTouchEnd);
+  sheetEl.addEventListener("pointerdown", onPointerDown);
   sheetEl.addEventListener("contextmenu", onContextMenu);
 
   return () => {
+    sheetEl.removeEventListener("touchstart", onTouchStart);
+    sheetEl.removeEventListener("touchmove", onTouchMove);
+    sheetEl.removeEventListener("touchend", onTouchEnd);
+    sheetEl.removeEventListener("touchcancel", onTouchEnd);
     sheetEl.removeEventListener("pointerdown", onPointerDown);
     stopFollowing();
     sheetEl.removeEventListener("contextmenu", onContextMenu);
